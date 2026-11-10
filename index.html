@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reel Prompt Studio</title>
+<style>
+:root{--ink:#1B1740;--bg:#EDEEFB;--card:#fff;--acc:#B4175F;--ok:#0F6B3E;--warn:#8A4B00;--line:#C9CBE8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",Roboto,Arial,sans-serif}
+header{background:var(--ink);color:#fff;padding:28px 20px 22px;border-bottom:10px solid transparent;border-image:repeating-linear-gradient(135deg,#fff 0 18px,var(--ink) 18px 36px) 10}
+header h1{margin:0;font:900 clamp(1.8rem,5vw,3rem)/1.05 "Arial Black","Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
+header p{margin:8px 0 0;max-width:62ch;color:#E3E3FA}
+.wrap{display:grid;gap:20px;padding:20px;max-width:1300px;margin:auto}
+@media(min-width:960px){.wrap{grid-template-columns:370px 1fr;align-items:start}#form{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}}
+section,#form{background:var(--card);border:2px solid var(--ink);border-radius:18px 18px 18px 4px;padding:18px;margin:0 0 20px}
+.wrap>div>section:last-child{margin-bottom:0}
+h2{margin:0 0 10px;font-size:1.3rem}h3{margin:14px 0 6px;font-size:1.05rem}
+label{display:block;font-weight:600;margin:12px 0 4px}.hint{font-weight:400;font-size:.85rem;color:#4A4770}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:#fff;border:2px solid #8A8DB8;border-radius:8px;padding:9px}
+textarea{min-height:64px;resize:vertical}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+button{font:inherit;font-weight:700;border-radius:999px;border:2px solid var(--ink);padding:9px 16px;background:#fff;color:var(--ink);cursor:pointer;margin:4px 6px 4px 0}
+button.p{background:var(--ink);color:#fff}button[aria-pressed=true]{background:#FFE08A}
+:focus-visible{outline:3px solid #D6247A;outline-offset:2px}
+.note{background:#F3F0FF;border-left:6px solid var(--acc);padding:10px 12px;border-radius:6px;font-size:.92rem;margin:10px 0}
+#msg{font-weight:700;color:#9B1C1C;min-height:1.4em}
+.item{border:2px solid var(--line);border-radius:12px;padding:10px;margin:10px 0}
+.item .t{font-weight:700;font-size:.9rem}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.sw{display:inline-flex;align-items:center;gap:6px;width:calc(50% - 6px);margin:2px 0;border-radius:8px;padding:8px;font-size:.82rem}
+.sw span{width:22px;height:22px;border-radius:6px;border:2px solid var(--ink);flex:none}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--warn);font-weight:700}
+.two{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+#reel{aspect-ratio:9/16;width:100%;max-width:290px;margin:auto;border-radius:22px;border:3px solid var(--ink);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:16% 12% 22% 8%}
+#reel .cap{align-self:flex-start;padding:4px 8px;border-radius:6px;font-weight:700;font-size:.85rem}
+#safe{position:absolute;inset:0;pointer-events:none;border:2px dashed #E4002B;border-width:12% 14% 20% 4%;background:none;display:none}
+#safe.on{display:block}#safe b{position:absolute;bottom:-18%;left:0;right:-30%;font-size:9px;color:#fff;background:#E4002B;padding:1px 3px;text-align:center}
+textarea.big{min-height:150px;font:14px/1.4 ui-monospace,Consolas,monospace}
+table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+@media(max-width:520px){.row3{grid-template-columns:1fr}.sw{width:100%}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><h1>Reel Prompt Studio</h1><p>Plan a short video, build a brand kit and get copy-ready prompts. This tool builds prompts using templates and design rules. It does not call an AI service.</p></header>
+<div class="wrap">
+<form id="form" aria-label="Reel settings" onsubmit="return false"><h2>Your reel</h2><div id="fields"></div>
+<div id="msg" role="alert"></div>
+<button class="p" id="bGen" type="button">Generate Plan</button><button id="bAlt" type="button">Another Version</button><button id="bEx" type="button">Try an Example</button>
+<h3>Draft</h3><button id="bSave" type="button">Save Draft</button><button id="bClear" type="button">Clear Saved Draft</button>
+<p class="note" id="stNote">Drafts save in this browser only and do not sync between devices.</p></form>
+<div id="out" hidden>
+<section><h2>Plan check</h2><ul id="check"></ul><p class="note">Strong planning can improve a reel, but no tool can guarantee virality. These checks follow simple rules and are not predictions.</p></section>
+<section><h2>A. Hooks</h2><p class="hint">Edit any hook. Press Keep to protect one when you choose Another Version.</p><div id="hooks"></div></section>
+<section><h2>B. Timed storyboard</h2><p id="tot" class="hint"></p><div id="scenes"></div></section>
+<section><h2>C. Branding kit</h2><p class="hint">Each palette lists background, text, accent and a spare colour. Choose a role, then press a swatch to apply it to the preview.</p>
+<label for="role">Apply swatch to</label><select id="role"><option value="bg">Background</option><option value="text">Text</option><option value="accent">Accent</option><option value="extra">Spare</option></select>
+<div class="grid" id="pals"></div><h3>Current contrast</h3><div id="con"></div>
+<h3>Logo direction</h3><p id="logoDir"></p><label for="shape">Logo shape</label><select id="shape"><option value="circle">Circle</option><option value="square">Rounded square</option><option value="diamond">Diamond</option></select>
+<label for="mono">Monogram letters (editable)</label><input id="mono" maxlength="3"><div id="logo" style="margin:10px 0;max-width:140px"></div><button id="bLogo" type="button">Download SVG Logo</button></section>
+<section><h2>D. Typography</h2><p class="hint">System font stacks only. Fonts vary by device, so none is guaranteed to appear everywhere.</p><div class="grid" id="fonts" role="radiogroup" aria-label="Typography direction"></div></section>
+<section><h2>E. Reel appearance</h2><div class="two"><div><div id="reel"><div id="safe"><b>Approximate safe area</b></div></div></div><div><label><input type="checkbox" id="safeT" style="width:auto"> Show approximate safe-area overlay</label><p class="note">The dashed red border marks areas where platform buttons and captions often sit. Interfaces vary, so treat it as a guide only.</p></div></div></section>
+<section><h2>F. Captions and production</h2><div id="caps"></div><h3>Hashtag suggestions</h3><p id="tags" class="hint"></p><h3>Production ideas</h3><ul id="prod"></ul></section>
+<section><h2>Copyable prompts</h2><div id="prompts"></div><button class="p" id="bAll" type="button">Copy Everything</button><button id="bDl" type="button">Download Plan</button>
+<div id="fb" hidden><p class="note">Copying was blocked. Select the text below and press Ctrl+C (or Cmd+C).</p><textarea id="fbT" class="big" aria-label="Manual copy box"></textarea></div><p id="cmsg" role="status" class="ok"></p></section>
+</div></div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function h(t,p,...k){const e=document.createElement(t);for(const a in p||{}){if(a==='aria'){Object.entries(p[a]).forEach(([x,y])=>e.setAttribute('aria-'+x,y))}else e[a]=p[a]}k.flat().forEach(x=>e.append(x));return e}
+const OPT={purpose:['Teach','Entertain','Explain','Inspire','Review','Tell a story'],platform:['Instagram Reels','TikTok','YouTube Shorts'],duration:['15','30','60'],tone:['Informative','Funny','Dramatic','Calm','Bold','Mysterious'],format:['Talking head','Faceless explainer','Mini-documentary','Tutorial','List','Myth versus fact','Before-and-after'],style:['Minimalist','Monochrome','Neon','Editorial','Retro','Cinematic','Playful']};
+const FIELDS=[['topic','Topic (required)','text'],['audience','Intended audience','text'],['purpose','Purpose','s'],['platform','Platform','s'],['duration','Duration (seconds)','s'],['tone','Tone','s'],['format','Format','s'],['brand','Brand name (optional)','text'],['kw','Three brand keywords','k'],['style','Visual style','s'],['colours','Colours to include or avoid (optional)','text'],['cta','Call to action','text'],['avoid','Avoid these things','text'],['facts','Verified facts or source notes (optional, one per line)','ta']];
+const IDS=FIELDS.flatMap(f=>f[2]=='k'?['kw1','kw2','kw3']:[f[0]]);
+const fb=$('fields');
+FIELDS.forEach(([id,l,t])=>{if(t=='k'){fb.append(h('label',{},l),h('div',{className:'row3'},[1,2,3].map(i=>h('input',{id:'kw'+i,ariaLabel:'Brand keyword '+i,placeholder:['playful','futuristic','trustworthy'][i-1]}))));[1,2,3].forEach(i=>$('kw'+i).setAttribute('aria-label','Brand keyword '+i));return}
+let e=t=='s'?h('select',{id},OPT[id].map(o=>h('option',{value:o,textContent:o}))):t=='ta'?h('textarea',{id}):h('input',{id,type:'text'});fb.append(h('label',{htmlFor:id},l),e)});
+$('audience').placeholder='e.g. students aged 13 to 16';$('cta').placeholder='e.g. Follow for more';$('avoid').placeholder='e.g. jargon, loud music';
+const EX={topic:'How black holes bend light',audience:'Students aged 13 to 16',purpose:'Explain',platform:'Instagram Reels',duration:'30',tone:'Informative',format:'Faceless explainer',brand:'Orbit Notes',kw1:'curious',kw2:'clear',kw3:'trustworthy',style:'Cinematic',colours:'Deep blue and gold',cta:'Follow for more science in 30 seconds',avoid:'Jargon, scary claims',facts:'Gravity bends the path of light.\nBlack holes form when very massive stars collapse.'};
+const PAL=[['Studio Ink','#14122B','#F5F3FF','#FF5FA2','#5EE6D9'],['Paper Mono','#FFFFFF','#111111','#4B4B4B','#D9D9D9'],['Neon Night','#0A0A1F','#FFFFFF','#00F0FF','#FF2BD6'],['Editorial Print','#F7F2E8','#1F2430','#B3261E','#2F5D62'],['Retro Sunset','#2B1B3F','#FFE9C7','#FF8A4C','#F7C948'],['Cinema Teal','#0E1A24','#E9EEF2','#E0A82E','#3B6E8F'],['Playful Pop','#FFF4D6','#2A1B5C','#E83E8C','#2F6FED'],['Calm Mist','#EAF2F0','#1E3A3A','#2E7D6B','#8DB6C8'],['Bold Signal','#FFD60A','#111111','#E4002B','#1B1B1B']];
+const PM={Minimalist:[1,7,3],Monochrome:[1,0,5],Neon:[2,0,8],Editorial:[3,5,1],Retro:[4,6,3],Cinematic:[5,2,0],Playful:[6,8,4]};
+const FONTS=[['Bold sans-serif','"Arial Black","Helvetica Neue",Arial,sans-serif','"Segoe UI",Roboto,Arial,sans-serif',900,'-0.02em','none','Punchy headlines with a clean, neutral body.'],['Editorial serif','Georgia,"Times New Roman",serif','Georgia,serif',700,'0','none','Thoughtful and trustworthy; pair a serif headline with a serif body.'],['Monospace','"Courier New",ui-monospace,monospace','"Courier New",ui-monospace,monospace',700,'0.02em','none','Technical or mysterious; use for short labels and steps.'],['Rounded friendly','"Trebuchet MS","Avenir Next Rounded",ui-rounded,sans-serif','"Trebuchet MS",Verdana,sans-serif',800,'0.01em','none','Warm and playful; keep body text large.'],['Condensed impact','Impact,"Arial Narrow","Helvetica Neue Condensed",sans-serif','"Segoe UI",Arial,sans-serif',700,'0.04em','uppercase','Tall, loud headlines; pair with a plain sans body.']];
+const FS={Minimalist:0,Monochrome:2,Neon:4,Editorial:1,Retro:3,Cinematic:4,Playful:3};
+const H={q:['What do {A} get wrong about {T}?','Is everything you have heard about {T} actually true?','Could you explain {T} in {D} seconds?'],s:['Here is the part of {T} nobody mentions: [add a verified fact].','{T} is stranger than it looks. Start with [add a verified fact].','Most {A} skip this detail about {T}: [add a verified fact].'],p:['Struggling to get your head round {T}? Same.','You keep hearing about {T}, but nobody explains it properly.','{T} feels complicated until you see it this way.'],c:['Try to follow {T} in {D} seconds. Ready?','Challenge: can you spot the common mistake about {T}?','Give me {D} seconds and I will change how you see {T}.'],v:['Close-up of an object linked to {T}, with one bold word slamming onto the screen.','Fast zoom through props linked to {T}, then freeze on one.','Split screen: confusion on the left, clarity about {T} on the right.']};
+const KQ={science:'What happens if you test {T} yourself? Show it, label it, then check the evidence.',history:'What was really happening around {T}? Start with a date and a source check.',book:'Would you read {T}? Here is a reason, with no spoilers.'};
+const LAB=['Question','Surprising angle','Relatable problem','Challenge','Visual opening'];
+const VK={science:'labelled diagram or simple demonstration',history:'timeline graphic with a source caption',book:'book on a desk, hands turning pages, spoiler-free',general:'clear b-roll or props linked to the topic'};
+const VS={Minimalist:'plain background, lots of space',Monochrome:'single-colour look, strong contrast',Neon:'glowing edges and dark backdrop',Editorial:'magazine-style type and tidy grids',Retro:'grainy textures and chunky shapes',Cinematic:'wide framing and dramatic light',Playful:'bright shapes and bouncy motion'};
+const TR={Informative:['Clean wipe','Simple cut'],Funny:['Whip pan','Zoom pop'],Dramatic:['Punch-in cut','Flash cut'],Calm:['Slow dissolve','Gentle fade'],Bold:['Hard cut','Slide push'],Mysterious:['Fade through black','Slow push-in']};
+const MUSIC={Informative:'light, steady instrumental, quiet under speech',Funny:'bouncy, quirky beat',Dramatic:'building cinematic pulse',Calm:'soft ambient pads',Bold:'confident upbeat percussion',Mysterious:'low, sparse synth texture'};
+const FMT={'Talking head':['context','point','point','twist','point'],'Faceless explainer':['context','demo','point','point','recap'],'Mini-documentary':['context','point','twist','point','recap'],Tutorial:['step','step','step','step','result'],List:['item','item','item','item','item'],'Myth versus fact':['myth','fact','myth','fact','recap'],'Before-and-after':['before','change','after','point','recap']};
+const S={seed:0,hooks:[],scenes:[],caps:[],pal:[],cur:{bg:'#14122B',text:'#F5F3FF',accent:'#FF5FA2',extra:'#5EE6D9'},font:0,shape:'circle',safe:true,made:false};
+const g=id=>$(id).value.trim();
+function C(){const T=(g('topic')||'your topic').slice(0,120),k=(T+' '+g('format')).toLowerCase();
+const kind=/scien|space|physic|chemi|biolog|climate|energy|brain|animal|planet|black hole/.test(k)?'science':/histor|ancient|war|empire|century|rome|egypt|medieval/.test(k)?'history':/book|novel|author|chapter|read/.test(k)?'book':'general';
+return{T,A:g('audience')||'students',D:+g('duration'),tone:g('tone'),fmt:g('format'),style:g('style'),purpose:g('purpose'),k:kind,FL:g('facts').split('\n').map(x=>x.trim()).filter(Boolean),brand:g('brand'),kw:[g('kw1'),g('kw2'),g('kw3')].filter(Boolean),cta:g('cta')||['Follow for more','Save this for later','Share it with a friend'][S.seed%3],avoid:g('avoid')}}
+const fill=(s,c)=>s.replace(/\{T\}/g,c.T).replace(/\{A\}/g,c.A).replace(/\{D\}/g,c.D);
+function mkHooks(c){const old=S.hooks;return['q','s','p','c','v'].map((k,i)=>{if(old[i]&&old[i].fav)return old[i];const b=k=='q'&&KQ[c.k]?[KQ[c.k],...H.q]:H[k];return{t:fill(b[(S.seed+i)%b.length],c),fav:false,lab:LAB[i]}})}
+function trim(s,n){const w=s.split(/\s+/);if(w.length<=n)return s;let r=w.slice(0,n).join(' ');if(r.includes('[')&&!r.includes(']'))r+=']';return r}
+function mkScenes(c){const n=c.D<=15?4:c.D<=30?5:7,m=n-2,old=S.scenes;let mid=FMT[c.fmt].slice(0,m);while(mid.length<m)mid.push('point');if(c.fmt=='Tutorial')mid[m-1]='result';
+const hT=Math.max(2,Math.round(c.D*.18)),cT=Math.max(2,Math.round(c.D*.17)),rest=c.D-hT-cT,b=Math.floor(rest/m),secs=[hT,...Array(m).fill(b),cT];secs[n-2]+=rest-b*m;
+const roles=['hook',...mid,'cta'],cnt={},tr=TR[c.tone],f=i=>c.FL.length?c.FL[i%c.FL.length]:'[add a verified fact]',vb=VK[c.k]+'; '+VS[c.style];
+return roles.map((r,i)=>{cnt[r]=(cnt[r]||0)+1;const q=cnt[r],R={hook:[fill(H.v[S.seed%3],c),S.hooks[0]?S.hooks[(S.seed)%5].t:'',trim(c.T,5)],context:[vb,`Quick background on ${c.T} for ${c.A}.`,'The basics'],point:[vb,f(q)+' ('+c.T+')','Key point '+q],demo:['Demonstration: '+vb,`Watch what happens when we look at ${c.T} this way.`,'Watch this'],twist:[vb,'But here is the twist: '+f(q+1),'The twist'],step:['Close-up of step '+q+'; '+vb,`Step ${q}: [describe the action].`,'Step '+q],result:['Show the finished result; '+vb,`That is ${c.T}: done and ready to use.`,'The result'],item:[vb,`Number ${q}: [name an item] and why it matters.`,'#'+q],myth:['Big MYTH label over '+vb,'Myth: [add a common belief].','MYTH'],fact:['Big FACT label over '+vb,'Fact: '+f(q),'FACT'],before:['"Before" shot; '+vb,`Before: how things look without ${c.T}.`,'Before'],change:['Mid-change moment; '+vb,'Here is what changes: [add the key change].','The change'],after:['"After" shot; '+vb,'After: the clear difference.','After'],recap:[vb,`${c.T} in one line: [add a one-line takeaway].`,'Remember this'],cta:['End card with brand and call to action',c.cta+'.',trim(c.cta,5)]}[r];
+const o=old[i]&&old[i].fav?old[i]:{v:R[0],s:R[1],x:R[2],fav:false};return{...o,sec:secs[i],t:tr[i%2],lim:Math.floor(secs[i]*2.5),s:o.fav?o.s:trim(R[1],Math.floor(secs[i]*2.5))}})}
+function mkCaps(c){const o=S.caps,t=[`${c.T}: explained for ${c.A}. ${c.cta}.`,`Save this if ${c.T} ever comes up. [add a verified fact] ${c.cta}.`,`${c.purpose} reel on ${c.T}. What should we cover next? Tell us below.`];return t.map((x,i)=>o[i]&&o[i].fav?o[i]:{t:x,fav:false})}
+function tags(c){const w=c.T.replace(/[^A-Za-z0-9 ]/g,'').split(/\s+/).filter(Boolean),cm=w.slice(0,3).map(x=>x[0].toUpperCase()+x.slice(1).toLowerCase()).join('');return[...new Set(['#'+(cm||'Reel'),'#'+(w[0]||'Learn').toLowerCase(),{'Instagram Reels':'#Reels',TikTok:'#TikTokTips','YouTube Shorts':'#Shorts'}[g('platform')],'#StudentCreator','#'+c.purpose.replace(/\W/g,'')])]}
+function gen(){const m=$('msg');if(!g('topic')){m.textContent='Enter a topic first, for example: How black holes bend light.';$('topic').focus();return false}
+m.textContent=g('topic').length>120?'Long topic shortened to 120 characters for the plan.':'';const c=C();S.hooks=mkHooks(c);S.scenes=mkScenes(c);S.caps=mkCaps(c);
+const pi=PM[c.style].slice();if(c.tone=='Calm')pi[2]=7;S.pal=pi.map(i=>PAL[i]);S.font=FS[c.style];S.fonts=FONTS;usePal(S.pal[0],true);$('mono').value=((c.brand||c.T).match(/[A-Za-z0-9]/g)||['R']).slice(0,1).concat((c.brand.split(/\s+/)[1]||'')[0]||[]).join('').toUpperCase();S.made=true;$('out').hidden=false;lists();live();return true}
+function usePal(p,q){S.cur={bg:p[1],text:p[2],accent:p[3],extra:p[4]};if(!q)live()}
+function favBtn(o,cb){const b=h('button',{type:'button',textContent:o.fav?'★ Kept':'☆ Keep',aria:{pressed:o.fav}});b.onclick=()=>{o.fav=!o.fav;b.textContent=o.fav?'★ Kept':'☆ Keep';b.setAttribute('aria-pressed',o.fav)};return b}
+function lists(){const c=C();$('hooks').replaceChildren(...S.hooks.map((o,i)=>{const t=h('textarea',{id:'h'+i,value:o.t,oninput:e=>{o.t=e.target.value;live()}});return h('div',{className:'item'},h('label',{htmlFor:'h'+i,className:'t'},(i+1)+'. '+o.lab),t,favBtn(o))}));
+$('scenes').replaceChildren(...S.scenes.map((o,i)=>{const st=S.scenes.slice(0,i).reduce((a,x)=>a+x.sec,0),F=[['v','Visual'],['s','Voiceover'],['x','On-screen text'],['t','Transition']];const wc=h('span',{className:'hint'});const upd=()=>{const n=o.s.split(/\s+/).filter(Boolean).length;wc.textContent=` ${n}/${o.lim} words`;wc.className=n>o.lim?'bad':'hint'};upd();
+return h('div',{className:'item'},h('div',{className:'t'},`Scene ${i+1}: ${st}s to ${st+o.sec}s (${o.sec}s)`,wc),F.map(([k,l])=>{const id='s'+i+k;return[h('label',{htmlFor:id},l),h('textarea',{id,value:o[k],rows:2,oninput:e=>{o[k]=e.target.value;upd();live()}})]}),favBtn(o))}));
+$('caps').replaceChildren(...S.caps.map((o,i)=>h('div',{className:'item'},h('label',{htmlFor:'c'+i,className:'t'},'Caption option '+(i+1)),h('textarea',{id:'c'+i,value:o.t,oninput:e=>{o.t=e.target.value;live()}}),favBtn(o))));
+$('tags').textContent='Suggestions only, not live trending data: '+tags(c).join(' ');
+const pr=[`Filming: shoot vertically (9:16) at the highest setting your phone allows. Keep the main subject in the centre third.`,`Lighting: face a window or soft lamp; avoid strong backlight. ${c.style=='Cinematic'?'Add one side light for mood.':'Keep lighting even and bright.'}`,`Framing: ${c.fmt=='Talking head'?'eyes about one third from the top':'steady shots with one clear subject'}; keep key text away from the edges.`,`Editing: ${c.tone=='Calm'?'use slow dissolves and few cuts':'cut on the beat and change shot every 2 to 4 seconds'}. Use: ${S.scenes[0].t} openers.`,`Music mood: ${MUSIC[c.tone]}. Use only music you have the right to use.`,`Accessibility: add subtitles to all speech, use large high-contrast text, avoid flashing, and describe key visuals in the caption.`,c.k=='science'?'Evidence: label diagrams and show where each fact comes from.':c.k=='history'?'Context: show dates on a timeline and check at least two sources.':c.k=='book'?'Spoilers: '+(c.avoid.toLowerCase().includes('spoil')?'avoid them.':'decide now what you will not reveal.'):'Check every factual claim before filming.'];
+$('prod').replaceChildren(...pr.map(x=>h('li',{textContent:x})));
+$('pals').replaceChildren(...S.pal.map(p=>{const ro=[['bg','Background',1],['text','Text',2],['accent','Accent',3],['extra','Spare',4]];return h('div',{className:'item'},h('strong',{},p[0]),h('div',{},ro.map(([r,l,j])=>{const b=h('button',{type:'button',className:'sw',title:l+' '+p[j]},h('span',{style:'background:'+p[j]}),l+' '+p[j]);b.onclick=()=>{S.cur[$('role').value]=p[j];live()};return b})),h('div',{className:'hint'},cn(p[2],p[1],'Text on background')),h('button',{type:'button',textContent:'Use whole palette',onclick:()=>usePal(p)}))}));
+$('fonts').replaceChildren(...FONTS.map((f,i)=>{const r=h('input',{type:'radio',name:'fnt',checked:i==S.font,style:'width:auto',onchange:()=>{S.font=i;live()}});return h('div',{className:'item'},h('label',{},r,' '+f[0]),h('div',{style:`font:${f[3]} 1.5rem ${f[1]};letter-spacing:${f[4]};text-transform:${f[5]}`,textContent:'Big idea in seconds'}),h('div',{style:`font:400 1rem ${f[2]}`,textContent:'Body text for captions and notes.'}),h('div',{className:'hint',textContent:`Heading 28 to 40px, weight ${f[3]}, spacing ${f[4]}; body 16 to 18px. ${f[6]}`}))}));
+$('shape').value=S.shape}
+function lum(x){const v=[1,3,5].map(i=>{let c=parseInt(x.substr(i,2),16)/255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)});return .2126*v[0]+.7152*v[1]+.0722*v[2]}
+function ratio(a,b){const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+function cn(a,b,l){const r=ratio(a,b);return`${l}: ${r.toFixed(1)}:1. `+(r>=4.5?'Passes WCAG AA':'Below WCAG AA (4.5:1). Pick another colour')}
+function logo(){const c=S.cur,t=esc($('mono').value||'R'),sh=S.shape,s={circle:`<circle cx="60" cy="60" r="54" fill="${c.accent}"/>`,square:`<rect x="8" y="8" width="104" height="104" rx="24" fill="${c.accent}"/>`,diamond:`<polygon points="60,4 116,60 60,116 4,60" fill="${c.accent}"/>`}[sh];return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Logo monogram ${t}">${s}<text x="60" y="76" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="${t.length>2?34:44}" fill="${c.bg}">${t}</text></svg>`}
+function live(){if(!S.made)return;const c=C(),cu=S.cur,f=FONTS[S.font],hk=S.hooks[0].t,sc=S.scenes[1]||S.scenes[0];
+const r=$('reel');r.style.background=cu.bg;r.style.color=cu.text;
+r.replaceChildren(h('div',{style:'width:44px'},''),h('div',{style:`font:${f[3]} 1.35rem/1.15 ${f[1]};letter-spacing:${f[4]};text-transform:${f[5]};overflow-wrap:anywhere`,textContent:trim(hk,14)}),h('div',{className:'cap',style:`background:${cu.accent};color:${cu.bg};font-family:${f[2]}`,textContent:sc.x}),h('div',{style:`font:700 .8rem ${f[2]};color:${cu.extra}`,textContent:(c.brand||'Your brand')+' · '+c.cta}),h('div',{id:'safe',className:S.safe?'on':''},h('b',{textContent:'Approximate safe area'})));
+r.firstChild.innerHTML=logo().replace('<svg ','<svg width="44" height="44" ');$('safeT').checked=S.safe;
+$('con').replaceChildren(...[[cu.text,cu.bg,'Text on background'],[cu.accent,cu.bg,'Accent on background'],[cu.bg,cu.accent,'Background on accent (caption chip)']].map(a=>{const ok=ratio(a[0],a[1])>=4.5;return h('div',{className:ok?'ok':'bad',textContent:(ok?'✔ ':'⚠ ')+cn(...a)})}));
+$('logo').innerHTML=logo();$('logoDir').textContent=`Original geometric monogram in the ${c.style.toLowerCase()} style, using ${c.kw.join(', ')||'your keywords'}. Draw your own shape rather than copying any existing logo.`;
+$('tot').textContent=`Scene timings total ${S.scenes.reduce((a,x)=>a+x.sec,0)}s of ${c.D}s. Aim for about 2.5 spoken words per second.`;
+check(c);prompts(c)}
+function check(c){const L=[],add=(ok,t)=>L.push(h('li',{className:ok?'ok':'bad',textContent:(ok?'✔ ':'⚠ ')+t})),tot=S.scenes.reduce((a,x)=>a+x.sec,0),over=S.scenes.map((x,i)=>x.s.split(/\s+/).filter(Boolean).length>x.lim?i+1:0).filter(Boolean),long=S.scenes.filter(x=>x.x.split(/\s+/).length>6).length,ph=JSON.stringify([S.hooks,S.scenes]).split('[add a verified fact]').length-1;
+add(g('topic').length>2&&!!g('audience'),g('topic').length>2&&g('audience')?'Topic and audience are clear.':'Add a clear topic and audience.');add(!!S.hooks[0].t.trim(),'An opening hook is present.');add(tot==c.D,`Scene timings total ${tot}s (selected ${c.D}s).`);add(!over.length,over.length?'Voiceover is too long in scene(s) '+over.join(', ')+'. Shorten it.':'Voiceover fits the available speaking time.');
+add(!long&&ratio(S.cur.text,S.cur.bg)>=4.5,long?'Shorten on-screen text to 6 words or fewer.':ratio(S.cur.text,S.cur.bg)<4.5?'Text contrast is below WCAG AA.':'On-screen text is short and readable.');add(!!g('cta'),g('cta')?'A call to action is included.':'No call to action entered; a suggestion was used. Add your own.');add(!ph&&c.FL.length>0,ph?`${ph} placeholder(s) say "[add a verified fact]". Add facts and check each against a reliable source.`:'Check every claim against a reliable source before posting.');
+$('check').replaceChildren(...L)}
+function common(c){const f=FONTS[S.font],cu=S.cur,sc=S.scenes.map((s,i)=>`Scene ${i+1} (${s.sec}s): Visual: ${s.v} | Voiceover: ${s.s} | On-screen text: ${s.x} | Transition: ${s.t}`).join('\n');
+return`Topic: ${c.T}\nAudience: ${c.A}\nPurpose: ${c.purpose}\nPlatform: ${g('platform')}\nDuration: ${c.D} seconds\nTone: ${c.tone}\nFormat: ${c.fmt}\nVisual style: ${c.style}\nBrand: ${c.brand||'(none)'}; keywords: ${c.kw.join(', ')||'(none)'}\nColours: background ${cu.bg}, text ${cu.text}, accent ${cu.accent}, spare ${cu.extra}. User colour notes: ${g('colours')||'none'}\nTypography: ${f[0]}; headings ${f[1]} weight ${f[3]}, body ${f[2]}\nHook: ${S.hooks[0].t}\nStoryboard:\n${sc}\nCall to action: ${c.cta}\nAccessibility: subtitles throughout, large high-contrast text, no flashing, key text inside safe areas.\nAvoid: ${c.avoid||'nothing specified'}; invented statistics, unsupported claims, copyrighted logos or music.\nFacts: ${c.FL.join(' / ')||'[add a verified fact]'}`}
+let P=[];
+function prompts(c){const k=common(c);P=[['Full reel production brief',`Act as a short-form video producer. Write a full production brief for a ${c.D}-second ${g('platform')} reel.\n${k}\nInclude shot list, props, lighting, editing notes, music mood and a posting checklist.`],['Video-generation prompt',`Create a vertical 9:16 video, ${c.D} seconds, ${c.tone.toLowerCase()} tone, ${c.style.toLowerCase()} style, about ${c.T} for ${c.A}.\n${k}\nIf you cannot reproduce exact lettering or captions accurately, leave the text areas clear and I will add the exact lettering and captions during editing.`],['Image or thumbnail prompt',`Design a 9:16 cover image for a reel about ${c.T}. Leave the top 12% and bottom 20% free of key content.\n${k}\nShow one clear subject, simple shapes and room for a short headline. Do not render small text.`],['Logo and branding prompt',`Create an original simple logo and brand look for "${c.brand||c.T}" (${c.kw.join(', ')||'clean, friendly'}). Monogram "${$('mono').value}" in a ${S.shape} shape. Do not copy any existing logo.\n${k}`],['Scriptwriting prompt',`Write a spoken script for a ${c.D}-second reel, about ${Math.floor(c.D*2.5)} words in total, in British English.\n${k}\nKeep each scene within its word limit, mark any statement that needs a source, and do not invent facts.`]];
+$('prompts').replaceChildren(...P.map((p,i)=>{const id='p'+i;return h('div',{className:'item'},h('label',{htmlFor:id,className:'t'},p[0]),h('textarea',{id,className:'big',value:p[1],oninput:e=>{P[i][1]=e.target.value}}),h('button',{type:'button',textContent:'Copy',aria:{label:'Copy '+p[0]},onclick:()=>copy(()=>$(id).value,$(id))}))}))}
+const all=()=>P.map(p=>'=== '+p[0]+' ===\n'+$('p'+P.indexOf(p)).value).join('\n\n');
+async function copy(fn,el){const t=fn(),m=$('cmsg');try{await navigator.clipboard.writeText(t);m.textContent='Copied to clipboard.';$('fb').hidden=true}catch(e){try{if(el){el.select();if(!document.execCommand('copy'))throw 0;m.textContent='Copied to clipboard.'}else throw 0}catch(e2){$('fb').hidden=false;$('fbT').value=t;$('fbT').select();m.textContent=''}}}
+function dl(name,type,txt){const a=h('a',{href:URL.createObjectURL(new Blob([txt],{type})),download:name});document.body.append(a);a.click();a.remove()}
+const store={ok(){try{localStorage.setItem('_t','1');localStorage.removeItem('_t');return true}catch(e){return false}}};
+function save(){if(!store.ok()){$('stNote').textContent='Browser storage is unavailable here, so the draft could not be saved. Use Download Plan instead.';return}const d={v:{},S};IDS.forEach(i=>d.v[i]=$(i).value);try{localStorage.setItem('rps-draft',JSON.stringify(d));$('stNote').textContent='Draft saved in this browser only. It does not sync between devices.'}catch(e){$('stNote').textContent='Draft could not be saved (storage full or blocked).'}}
+function load(){try{const d=JSON.parse(localStorage.getItem('rps-draft')||'null');if(!d)return;IDS.forEach(i=>{if(d.v[i]!=null)$(i).value=d.v[i]});Object.assign(S,d.S);if(S.made){$('out').hidden=false;lists();live()}}catch(e){}}
+function setVals(o){IDS.forEach(i=>$(i).value=o[i]||'')}
+$('bGen').onclick=()=>{S.seed=0;S.hooks=[];S.scenes=[];S.caps=[];gen()};
+$('bAlt').onclick=()=>{S.seed++;gen()};
+$('bEx').onclick=()=>{setVals(EX);S.seed=0;S.hooks=[];S.scenes=[];S.caps=[];gen()};
+$('bSave').onclick=save;
+$('bClear').onclick=()=>{try{localStorage.removeItem('rps-draft')}catch(e){}$('stNote').textContent='Saved draft cleared. Drafts save in this browser only.'};
+$('bAll').onclick=()=>S.made&&copy(all);
+$('bDl').onclick=()=>S.made&&dl('reel-plan.txt','text/plain',all());
+$('bLogo').onclick=()=>dl('logo.svg','image/svg+xml',logo());
+$('shape').onchange=e=>{S.shape=e.target.value;live()};$('mono').oninput=live;
+$('safeT').onchange=e=>{S.safe=e.target.checked;live()};
+$('fields').addEventListener('change',()=>{if(S.made)live()});
+load();
+</script>
+</body>
+</html>
